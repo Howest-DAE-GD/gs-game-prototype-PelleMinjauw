@@ -59,7 +59,7 @@ Point2f Human::GetAimDirection(const Point2f& aimPos, float maxHeight)
 
 bool Human::Shoot() 
 {
-	const float waitTime{ 5.f };
+	const float waitTime{ float(rand() % 3) + 4.f };
 	if (m_ShootTimer >= waitTime)
 	{
 		m_ShootTimer = 0.f;

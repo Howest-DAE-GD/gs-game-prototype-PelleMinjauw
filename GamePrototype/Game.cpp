@@ -24,6 +24,7 @@ void Game::Initialize()
 	m_pTimer = new Timer{ Point2f{GetViewPort().width / 2 - 50.f, GetViewPort().height - 50.f} };
 	m_Humans.reserve(100);
 	m_Allergies.reserve(200);
+	m_Humans.push_back(new Human{ GetRandomPos(m_HumanBorders), GetRandomClr() });
 	//m_Humans.push_back(new Human{ GetRandomPos(m_HumanBorders), GetRandomClr() });
 	/*for (int i{}; i < 4; ++i)
 	{
@@ -217,7 +218,7 @@ Color4f Game::GetRandomClr(const Color4f& avoidClr) const
 
 void Game::SpawnHumans()
 {
-	float maxTime{ 1.f };
+	float maxTime{ 3.5f };
 	if (m_SpawnTimer > maxTime)
 	{
 		m_Humans.push_back(new Human{ GetRandomPos(m_HumanBorders), GetRandomClr() });
@@ -247,7 +248,7 @@ void Game::SpawnHumans()
 
 void Game::UpdateAllergies(const Uint8* pStates, float elapsedSec)
 {
-	const float maxAllergyTime{ 10.f };
+	const float maxAllergyTime{ 25.f };
 
 	for (int idx{}; idx < m_Allergies.size(); ++idx)
 	{
