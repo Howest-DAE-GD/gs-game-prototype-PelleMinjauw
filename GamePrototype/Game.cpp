@@ -3,6 +3,7 @@
 #include "Player.h"
 #include "Level.h"
 #include "Human.h"
+#include "Timer.h"
 #include <iostream>
 
 Game::Game( const Window& window ) 
@@ -18,8 +19,9 @@ Game::~Game( )
 
 void Game::Initialize()
 {
-	m_pPlayer = new Player{ m_SpawnPos, m_PlayerClr, m_PlayerBorders,Point2f{1200.f, GetViewPort().height / 2} };
-	m_pLevel = new Level(m_LevelBorders, m_LevelClr, m_PlayerBorders, m_PlayerClr);
+	m_pPlayer = new Player{ m_SpawnPos, m_PlayerClr, m_PlayerBorders,Point2f{m_PlayerBorders.left + 300.f, GetViewPort().height / 2}, Point2f{GetViewPort().width - 180.f, GetViewPort().height - 50.f}};
+	m_pLevel = new Level{ m_LevelBorders, m_LevelClr, m_PlayerBorders, m_PlayerClr };
+	m_pTimer = new Timer{ Point2f{GetViewPort().width / 2 - 50.f, GetViewPort().height - 50.f} };
 	m_Humans.reserve(100);
 	m_Allergies.reserve(200);
 	//m_Humans.push_back(new Human{ GetRandomPos(m_HumanBorders), GetRandomClr() });
@@ -28,6 +30,7 @@ void Game::Initialize()
 		m_Humans.push_back(new Human{ GetRandomPos(m_HumanBorders), GetRandomClr() });
 
 	}*/
+
 }
 
 void Game::Cleanup( )
@@ -54,11 +57,14 @@ void Game::Update( float elapsedSec )
 	const Uint8 *pStates = SDL_GetKeyboardState( nullptr );
 	
 	m_Timer += elapsedSec;
-	
-	UpdatePlayer(pStates, elapsedSec);
-	UpdateAllergies(pStates, elapsedSec);
-	updateHumans(pStates, elapsedSec);
-	GameOver();
+	if (!m_GameOver)
+	{
+		UpdatePlayer(pStates, elapsedSec);
+		UpdateAllergies(pStates, elapsedSec);
+		updateHumans(pStates, elapsedSec);
+		m_pTimer->Update(elapsedSec);
+		GameOver();
+	}
 	
 	/*if (pStates[SDL_SCANCODE_T])
 	{
@@ -92,6 +98,8 @@ void Game::Draw( ) const
 
 	m_pPlayer->Draw();
 	m_pLevel->Draw();
+	m_pPlayer->DrawHealth();
+	m_pTimer->Draw();
 	for (int idx{}; idx < m_Humans.size();++idx)
 	{
 		m_Humans[idx]->Draw();
@@ -99,6 +107,11 @@ void Game::Draw( ) const
 	for (int idx{}; idx < m_Allergies.size(); ++idx)
 	{
 		m_Allergies[idx]->allergyS.Draw();
+	}
+
+	if (m_GameOver)
+	{
+		m_TextGameOver->Draw(Point2f{ GetViewPort().width / 2 - m_TextGameOver->GetWidth() / 2, GetViewPort().height / 2 });
 	}
 }
 
@@ -240,7 +253,7 @@ void Game::UpdateAllergies(const Uint8* pStates, float elapsedSec)
 	{
 		m_Allergies[idx]->timerS += elapsedSec;
 		m_Allergies[idx]->allergyS.Update(elapsedSec);
-		m_Allergies[idx]->allergyS.CheckCollision(m_LevelBorders, m_pPlayer->GetPlatfromHB());
+		m_Allergies[idx]->allergyS.CheckCollision(m_LevelBorders, m_pPlayer->GetPlatfromHB(), m_pPlayer->GetPlatformNormal());
 	}
 	int idx{};
 	while (idx < m_Allergies.size())
@@ -281,23 +294,21 @@ void Game::updateHumans(const Uint8* pStates, float elapsedSec)
 		while (idx2 < m_Allergies.size())
 		{
 			if (humanDeleted)return;
-			if (m_Humans[idx]->CheckCollision(m_Allergies[idx2]->allergyS.GetHitbox(), m_Allergies[idx2]->allergyS.GetOfPlayer(), m_Allergies[idx2]->allergyS.GetClr()))
+			if (m_Humans[idx]->CheckCollision(m_Allergies[idx2]->allergyS.GetHitbox(), m_Allergies[idx2]->allergyS.GetOfPlayer()))
 			{
-				/*delete m_Allergies[idx2];
-				m_Allergies[idx2] = m_Allergies[m_Allergies.size() - 1];
-				m_Allergies[m_Allergies.size() - 1] = nullptr;
-				m_Allergies.pop_back();*/
-				m_Allergies.erase(std::find(m_Allergies.begin(), m_Allergies.end(), m_Allergies[idx2]));
-	
-				/*delete m_Humans[idx];
-				m_Humans[idx] = m_Humans[m_Humans.size() - 1];
-				m_Humans[m_Humans.size() - 1] = nullptr;
-				m_Humans.pop_back();*/
-	
-				m_Humans.erase(std::find(m_Humans.begin(), m_Humans.end(), m_Humans[idx]));
-				/*m_Humans[idx]->SetCanShoot(false);
-				m_Humans[idx]->SetPos(Point2f{ -100.f,0.f });*/
-				humanDeleted = true;
+				if (m_Allergies[idx2]->allergyS.GetClr().r == m_Humans[idx]->GetClr().r && m_Allergies[idx2]->allergyS.GetClr().g == m_Humans[idx]->GetClr().g &&
+					m_Allergies[idx2]->allergyS.GetClr().b == m_Humans[idx]->GetClr().b)
+				{
+					m_Allergies.erase(std::find(m_Allergies.begin(), m_Allergies.end(), m_Allergies[idx2]));
+					m_Humans.erase(std::find(m_Humans.begin(), m_Humans.end(), m_Humans[idx]));
+					humanDeleted = true;
+				}
+				else
+				{
+					m_Allergies[idx2]->allergyS.SetMovement(true);
+					m_Allergies[idx2]->allergyS.SetOfPlayer(false);
+
+				}
 			}
 			++idx2;
 		}
@@ -325,7 +336,7 @@ void Game::UpdatePlayer(const Uint8* pStates, float elapsedSec)
 
 void Game::GameOver()
 {
-	if (m_pPlayer->GetHealth() <= 0 && m_GameOver == false)
+	if (m_pPlayer->GetHealth() <= 0)
 	{
 		std::cout << "GAME OVER\n";
 		m_GameOver = true;

@@ -5,7 +5,7 @@
 Human::Human(const Point2f& pos, const Color4f& clr)
 	:m_Pos{pos}
 	,m_Clr{clr}
-	,m_Side{25.f}
+	,m_Side{30.f}
 	,m_Alive{true}
 	,m_ShootTimer{}
 	//,m_CanShoot{true}
@@ -78,15 +78,16 @@ bool Human::Shoot()
 	return false;
 }
 
-bool Human::CheckCollision(const Circlef& allergyHB, bool isPlayer, const Color4f& clrAllergy)
+bool Human::CheckCollision(const Circlef& allergyHB, bool isPlayer)
 {
-	if (isPlayer && m_Clr.r == clrAllergy.r && m_Clr.g == clrAllergy.g && m_Clr.b == clrAllergy.b)
+	if (isPlayer)
 	{
 		if (utils::IsOverlapping(Rectf{m_Pos.x,m_Pos.y, m_Side, m_Side}, allergyHB))
 		{
-			return true;
+		return true;
 		}
 	}
+	
 	return false;
 }
 

@@ -13,11 +13,11 @@ public:
 	Color4f GetClr()const;
 	Point2f GetAimDirection(const Point2f& aimPos, float maxHeight);
 	bool Shoot();
-	bool CheckCollision(const Circlef& allergyHB, bool isPlayer, const Color4f& clrAllergy);
-	void SetPos(const Point2f& newPos);
+	bool CheckCollision(const Circlef& allergyHB, bool isPlayer);
+	//void SetPos(const Point2f& newPos);
 	//void SetCanShoot(bool newBool);
 	//bool GetCanShoot()const;
-	void SetClr(const Color4f& newColor);
+	//void SetClr(const Color4f& newColor);
 
 private:
 	
